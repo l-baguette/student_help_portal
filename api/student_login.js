@@ -16,6 +16,7 @@ export async function handler(req, res) {
                 .from('users')
                 .select('*')
                 .eq('student_id', studentId)
+                .eq('role', 'student')
                 .single();
 
             // Handle errors or non-existent users
@@ -31,7 +32,9 @@ export async function handler(req, res) {
             // Store the user in the session
             req.session.user = user;
 
-            res.status(200).json({ message: 'Login successful' });
+            // Redirect the user to the student dashboard
+            res.writeHead(302, { Location: '/student_dashboard.html' });
+            res.end();
         } catch (error) {
             console.error('Error logging in user:', error);
             res.status(500).json({ error: 'Internal server error. Please try again later.' });

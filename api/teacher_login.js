@@ -1,11 +1,12 @@
 // api/teacher_login.js
 import { createClient } from '@supabase/supabase-js';
+import withSession from './session';
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-export default async function handler(req, res) {
+export async function handler(req, res) {
     if (req.method === 'POST') {
         const { teacherId, password } = req.body;
 
@@ -24,7 +25,9 @@ export default async function handler(req, res) {
             // Add session logic here
             req.session.user = user;
 
-            res.status(200).json({ message: 'Login successful' });
+            // Redirect the user to the teacher dashboard
+            res.writeHead(302, { Location: '/teacher_dashboard.html' });
+            res.end();
         } catch (error) {
             console.error('Error logging in teacher:', error);
             res.status(500).json({ error: 'Internal server error. Please try again later.' });
@@ -33,3 +36,5 @@ export default async function handler(req, res) {
         res.status(405).json({ error: 'Method not allowed' });
     }
 }
+
+export default withSession(handler);
