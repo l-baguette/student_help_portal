@@ -1,21 +1,33 @@
-// /api/returned_submissions.js
 const express = require('express');
-const Feedback = require('../models/Feedback');
-const Submission = require('../models/Submission');
+const { createClient } = require('@supabase/supabase-js');
 const app = express();
+
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
 app.get('/returned_submissions', async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'student') {
-        return res.status(401).send('Unauthorized');
+        return res.status(401).json({ error: 'Unauthorized' });
     }
 
     try {
-        const submissions = await Submission.find({ studentId: req.session.user.studentId });
-        const feedbacks = await Feedback.find({ submissionId: { $in: submissions.map(sub => sub._id) } });
+        const { data: submissions, error: submissionError } = await supabase
+            .from('submissions')
+            .select('id')
+            .eq('student_id', req.session.user.id);
+
+        if (submissionError) throw submissionError;
+
+        const { data: feedbacks, error: feedbackError } = await supabase
+            .from('feedback')
+            .select('*')
+            .in('submission_id', submissions.map(sub => sub.id));
+
+        if (feedbackError) throw feedbackError;
+
         res.json(feedbacks);
     } catch (error) {
         console.error('Error retrieving returned submissions:', error);
-        res.status(500).send('Error retrieving returned submissions');
+        res.status(500).json({ error: 'Error retrieving returned submissions' });
     }
 });
 

@@ -1,43 +1,45 @@
-// /api/submit.js
 const express = require('express');
 const multer = require('multer');
-const path = require('path');
-const Submission = require('../models/Submission');
+const { createClient } = require('@supabase/supabase-js');
 const app = express();
 
-// Set up file storage configuration using Multer
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/');
-    },
-    filename: (req, file, cb) => {
-        const sanitizedFilename = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-        cb(null, sanitizedFilename);
-    }
-});
-const upload = multer({ storage });
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+
+// Multer setup for handling file uploads in memory
+const upload = multer({ storage: multer.memoryStorage() });
 
 app.post('/submit', upload.single('fileUpload'), async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'student') {
-        return res.status(401).send('Unauthorized');
+        return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const { desiredOutcome, actualOutcome, problem } = req.body;
-    const newSubmission = new Submission({
-        studentId: req.session.user.studentId,
-        desiredOutcome,
-        actualOutcome,
-        problem,
-        filePath: req.file.path,
-        createdAt: new Date()
-    });
+    let filePath = null;
 
-    try {
-        await newSubmission.save();
-        res.status(200).send('Submission successful');
-    } catch (error) {
+    if (req.file) {
+        const fileName = `${Date.now()}_${req.file.originalname}`;
+        const { data, error } = await supabase
+            .storage
+            .from('uploads')
+            .upload(fileName, req.file.buffer);
+
+        if (error) {
+            console.error('Error uploading file to Supabase:', error);
+            return res.status(500).json({ error: 'Error uploading file' });
+        }
+
+        filePath = data.Key;
+    }
+
+    const { error } = await supabase
+        .from('submissions')
+        .insert([{ student_id: req.session.user.id, desired_outcome: desiredOutcome, actual_outcome: actualOutcome, problem, file_path: filePath }]);
+
+    if (error) {
         console.error('Error submitting data:', error);
-        res.status(500).send('Error submitting data');
+        res.status(500).json({ error: 'Error submitting data' });
+    } else {
+        res.status(200).json({ message: 'Submission successful' });
     }
 });
 

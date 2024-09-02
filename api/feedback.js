@@ -1,46 +1,48 @@
-// /api/feedback.js
 const express = require('express');
 const multer = require('multer');
-const path = require('path');
-const Feedback = require('../models/Feedback');
+const { createClient } = require('@supabase/supabase-js');
 const app = express();
 
-// Set up file storage configuration for feedback using Multer
-const feedbackStorage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'feedback/');
-    },
-    filename: (req, file, cb) => {
-        const sanitizedFilename = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-        cb(null, sanitizedFilename);
-    }
-});
-const feedbackUpload = multer({ storage: feedbackStorage });
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+
+// Multer setup for handling file uploads in memory
+const feedbackUpload = multer({ storage: multer.memoryStorage() });
 
 app.post('/feedback/:id', feedbackUpload.single('revisedFile'), async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'teacher') {
-        return res.status(401).send('Unauthorized');
+        return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    try {
-        const feedbackData = {
-            submissionId: req.params.id,
-            teacherId: req.session.user.studentId,
-            feedback: req.body.feedback
-        };
+    const feedbackData = {
+        submission_id: req.params.id,
+        teacher_id: req.session.user.id,
+        feedback: req.body.feedback
+    };
 
-        if (req.file) {
-            feedbackData.revisedFilePath = `feedback/${req.file.filename}`;
-            feedbackData.revisedFileName = req.file.originalname;
+    if (req.file) {
+        const fileName = `${Date.now()}_${req.file.originalname}`;
+        const { data, error } = await supabase
+            .storage
+            .from('uploads')
+            .upload(fileName, req.file.buffer);
+
+        if (error) {
+            console.error('Error uploading file to Supabase:', error);
+            return res.status(500).json({ error: 'Error uploading file' });
         }
 
-        const newFeedback = new Feedback(feedbackData);
-        await newFeedback.save();
+        feedbackData.revised_file_path = data.Key;
+    }
 
-        res.status(200).send('Feedback submitted successfully');
-    } catch (error) {
+    const { error } = await supabase
+        .from('feedback')
+        .insert([feedbackData]);
+
+    if (error) {
         console.error('Error submitting feedback:', error);
-        res.status(500).send('Error submitting feedback');
+        res.status(500).json({ error: 'Error submitting feedback' });
+    } else {
+        res.status(200).json({ message: 'Feedback submitted successfully' });
     }
 });
 
