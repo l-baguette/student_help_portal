@@ -1,49 +1,33 @@
-const express = require('express');
-const multer = require('multer');
-const { createClient } = require('@supabase/supabase-js');
-const app = express();
+const supabase = require('../supabaseClient');
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
-
-// Multer setup for handling file uploads in memory
-const upload = multer({ storage: multer.memoryStorage() });
-
-app.post('/api/submit', upload.single('fileUpload'), async (req, res) => {
+module.exports = async (req, res) => {
     try {
-        if (!req.session.user || req.session.user.role !== 'student') {
-            return res.status(401).json({ error: 'Unauthorized' });
+        const { studentId, desiredOutcome, actualOutcome, problem } = req.body;
+
+        if (!studentId || !desiredOutcome || !actualOutcome || !problem || !req.file) {
+            return res.status(400).json({ error: 'All fields and file upload are required.' });
         }
 
-        const { desiredOutcome, actualOutcome, problem } = req.body;
-        let filePath = null;
-
-        if (req.file) {
-            const fileName = `${Date.now()}_${req.file.originalname}`;
-            const { data, error } = await supabase
-                .storage
-                .from('uploads')
-                .upload(fileName, req.file.buffer);
-
-            if (error) {
-                throw new Error('Error uploading file to Supabase');
-            }
-
-            filePath = data.Key;
-        }
-
-        const { error } = await supabase
+        const { error: insertError } = await supabase
             .from('submissions')
-            .insert([{ student_id: req.session.user.id, desired_outcome: desiredOutcome, actual_outcome: actualOutcome, problem, file_path: filePath }]);
+            .insert([
+                {
+                    student_id: studentId,
+                    desired_outcome: desiredOutcome,
+                    actual_outcome: actualOutcome,
+                    problem: problem,
+                    file_path: req.file.path
+                }
+            ]);
 
-        if (error) {
-            throw new Error('Error submitting data');
+        if (insertError) {
+            console.error('Error submitting data:', insertError);
+            return res.status(500).json({ error: 'Internal server error. Please try again later.' });
         }
 
         res.status(200).json({ message: 'Submission successful' });
-    } catch (err) {
-        console.error(err.message);
+    } catch (error) {
+        console.error('Unexpected error:', error);
         res.status(500).json({ error: 'Internal server error. Please try again later.' });
     }
-});
-
-module.exports = app;
+};

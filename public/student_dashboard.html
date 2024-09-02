@@ -24,33 +24,25 @@
     </form>
 
     <h3>Your Submissions</h3>
-    <ul id="submissions">
-        <!-- Submissions will be dynamically loaded here -->
-    </ul>
+    <ul id="submissions"></ul>
 
     <h3>Returned Submissions</h3>
-    <ul id="returnedSubmissions">
-        <!-- Returned submissions will be dynamically loaded here -->
-    </ul>
+    <ul id="returnedSubmissions"></ul>
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            // Fetch and display original submissions
             fetch('/api/student_submissions')
                 .then(response => response.json())
                 .then(submissions => {
                     const submissionsList = document.getElementById('submissions');
                     submissions.forEach(submission => {
                         const listItem = document.createElement('li');
-                        const fileName = submission.file_path.split('/').pop(); // Extract the file name
-                        const encodedFileName = encodeURIComponent(fileName); // Encode the file name
+                        const fileName = submission.file_path.split('/').pop();
                         const fileLink = document.createElement('a');
-                        fileLink.href = `/uploads/${encodedFileName}`;
-                        fileLink.textContent = fileName;  // Display original file name
-                        fileLink.target = '_blank';  // Open in new tab
+                        fileLink.href = `/uploads/${encodeURIComponent(fileName)}`;
+                        fileLink.textContent = fileName;
+                        fileLink.target = '_blank';
                         const formattedDate = new Date(submission.created_at).toLocaleString();
-
-                        // Reorganized display structure
                         listItem.innerHTML = `
                             <strong>Submitted At:</strong> ${formattedDate}<br>
                             <strong>File:</strong> `;
@@ -59,51 +51,38 @@
                             <strong>Problem:</strong> ${submission.problem}<br>
                             <strong>Desired Outcome:</strong> ${submission.desired_outcome}<br>
                             <strong>Actual Outcome:</strong> ${submission.actual_outcome}<br>
-                            <p></p>
                         `;
-
                         submissionsList.appendChild(listItem);
                     });
                 })
-                .catch(error => {
-                    console.error('Error fetching submissions:', error);
-                    alert('There was an error fetching your submissions. Please try again later.');
-                });
+                .catch(error => console.error('Error fetching submissions:', error));
 
-            // Fetch and display returned submissions
             fetch('/api/returned_submissions')
                 .then(response => response.json())
                 .then(feedbacks => {
                     const returnedList = document.getElementById('returnedSubmissions');
                     feedbacks.forEach(feedback => {
                         const listItem = document.createElement('li');
-                        const formattedDate = feedback.created_at ? new Date(feedback.created_at).toLocaleString() : 'No Date';
-
+                        const formattedDate = new Date(feedback.created_at).toLocaleString();
                         listItem.innerHTML = `
                             <strong>Returned At:</strong> ${formattedDate}<br>
-                            <strong>Feedback:</strong> ${feedback.feedback || 'No Feedback'}<br>
+                            <strong>Feedback:</strong> ${feedback.feedback}<br>
                         `;
-
                         if (feedback.revised_file_path) {
-                            const fileName = feedback.revised_file_path.split('/').pop(); // Extract the file name
-                            const encodedFileName = encodeURIComponent(fileName); // Encode the file name
+                            const fileName = feedback.revised_file_path.split('/').pop();
                             const fileLink = document.createElement('a');
-                            fileLink.href = `/feedback/${encodedFileName}`;
-                            fileLink.textContent = feedback.revised_file_name || 'Download Revised File';
-                            fileLink.target = '_blank';  // Open in new tab
+                            fileLink.href = `/feedback/${encodeURIComponent(fileName)}`;
+                            fileLink.textContent = feedback.revised_file_name;
+                            fileLink.target = '_blank';
                             listItem.innerHTML += `<strong>Revised File:</strong> `;
                             listItem.appendChild(fileLink);
                         } else {
                             listItem.innerHTML += `<strong>Revised File:</strong> None`;
                         }
-
                         returnedList.appendChild(listItem);
                     });
                 })
-                .catch(error => {
-                    console.error('Error fetching returned submissions:', error);
-                    alert('There was an error fetching your returned submissions. Please try again later.');
-                });
+                .catch(error => console.error('Error fetching returned submissions:', error));
         });
     </script>
 </body>

@@ -1,35 +1,49 @@
-const express = require('express');
+const supabase = require('../supabaseClient');
 const bcrypt = require('bcryptjs');
-const { createClient } = require('@supabase/supabase-js');
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
-const app = express();
-
-app.use(express.json());
-
-app.post('/api/register_teacher', async (req, res) => {
+module.exports = async (req, res) => {
     try {
         const { teacherId, password } = req.body;
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newTeacher = {
-            student_id: teacherId,
-            password: hashedPassword,
-            role: 'teacher'
-        };
 
-        const { error } = await supabase
+        if (!teacherId || !password) {
+            return res.status(400).json({ error: 'Teacher ID and password are required.' });
+        }
+
+        const { data: existingUser, error: fetchError } = await supabase
             .from('users')
-            .insert([newTeacher]);
+            .select('*')
+            .eq('student_id', teacherId)
+            .single();
 
-        if (error) {
-            throw new Error('Error registering teacher');
+        if (fetchError && fetchError.code !== 'PGRST116') {
+            console.error('Error checking existing user:', fetchError);
+            return res.status(500).json({ error: 'Internal server error. Please try again later.' });
+        }
+
+        if (existingUser) {
+            return res.status(409).json({ error: 'User already exists.' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const { error: insertError } = await supabase
+            .from('users')
+            .insert([
+                {
+                    student_id: teacherId,
+                    password: hashedPassword,
+                    role: 'teacher'
+                }
+            ]);
+
+        if (insertError) {
+            console.error('Error registering teacher:', insertError);
+            return res.status(500).json({ error: 'Internal server error. Please try again later.' });
         }
 
         res.status(200).json({ message: 'Teacher registration successful' });
-    } catch (err) {
-        console.error('Error registering teacher:', err.message);
+    } catch (error) {
+        console.error('Unexpected error:', error);
         res.status(500).json({ error: 'Internal server error. Please try again later.' });
     }
-});
-
-module.exports = app;
+};
