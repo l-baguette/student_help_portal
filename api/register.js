@@ -1,47 +1,28 @@
-import { supabase } from './supabaseClient';
-import bcrypt from 'bcryptjs';
+// api/register.js
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(req, res) {
     if (req.method === 'POST') {
-        const { studentId, password, role } = req.body;
+        const { studentId, password } = req.body;
 
         try {
-            // Check if user already exists
-            const { data: existingUser, error: fetchError } = await supabase
-                .from('users')
-                .select('*')
-                .eq('student_id', studentId)
-                .single();
-
-            if (fetchError && fetchError.code !== 'PGRST116') {
-                console.error('Error checking existing user:', fetchError);
-                return res.status(500).json({ error: 'Internal server error. Please try again later.' });
-            }
-
-            if (existingUser) {
-                return res.status(409).json({ error: 'User already exists.' });
-            }
-
-            const hashedPassword = await bcrypt.hash(password, 10);
-
-            const { error: insertError } = await supabase
+            const { data, error } = await supabase
                 .from('users')
                 .insert([
-                    {
-                        student_id: studentId,
-                        password: hashedPassword,
-                        role: role || 'student'
-                    }
+                    { student_id: studentId, password: password, role: 'student' }
                 ]);
 
-            if (insertError) {
-                console.error('Error registering user:', insertError);
-                return res.status(500).json({ error: 'Internal server error. Please try again later.' });
+            if (error) {
+                throw error;
             }
 
             res.status(200).json({ message: 'Registration successful' });
         } catch (error) {
-            console.error('Unexpected error:', error);
+            console.error('Error registering user:', error);
             res.status(500).json({ error: 'Internal server error. Please try again later.' });
         }
     } else {

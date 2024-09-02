@@ -1,28 +1,26 @@
+// api/student_submissions.js
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-module.exports = async (req, res) => {
-    if (!req.session.user || req.session.user.role !== 'student') {
-        return res.status(401).json({ error: 'Unauthorized' });
-    }
+export default async function handler(req, res) {
+    const studentId = req.session.user.student_id;
 
     try {
         const { data: submissions, error } = await supabase
             .from('submissions')
             .select('*')
-            .eq('student_id', req.session.user.id);
+            .eq('student_id', studentId);
 
         if (error) {
-            console.error('Error retrieving submissions:', error);
-            return res.status(500).json({ error: 'Internal server error. Please try again later.' });
+            throw error;
         }
 
         res.status(200).json(submissions);
     } catch (error) {
-        console.error('Unexpected error:', error);
+        console.error('Error retrieving submissions:', error);
         res.status(500).json({ error: 'Internal server error. Please try again later.' });
     }
-};
+}

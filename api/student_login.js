@@ -1,35 +1,31 @@
-import { supabase } from './supabaseClient';
-import bcrypt from 'bcryptjs';
+// api/student_login.js
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(req, res) {
     if (req.method === 'POST') {
         const { studentId, password } = req.body;
 
         try {
-            const { data: user, error: fetchError } = await supabase
+            const { data: user, error } = await supabase
                 .from('users')
                 .select('*')
                 .eq('student_id', studentId)
                 .single();
 
-            if (fetchError || !user) {
-                return res.status(401).json({ error: 'Invalid credentials.' });
+            if (error || !user) {
+                return res.status(401).json({ error: 'Invalid credentials' });
             }
 
-            const isPasswordValid = await bcrypt.compare(password, user.password);
-            if (!isPasswordValid) {
-                return res.status(401).json({ error: 'Invalid credentials.' });
-            }
-
-            req.session.user = {
-                id: user.id,
-                studentId: user.student_id,
-                role: user.role
-            };
+            // Add session logic here
+            req.session.user = user;
 
             res.status(200).json({ message: 'Login successful' });
         } catch (error) {
-            console.error('Unexpected error:', error);
+            console.error('Error logging in user:', error);
             res.status(500).json({ error: 'Internal server error. Please try again later.' });
         }
     } else {

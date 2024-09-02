@@ -1,39 +1,32 @@
-import { supabase } from './supabaseClient';
-import bcrypt from 'bcryptjs';
+// api/teacher_login.js
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(req, res) {
     if (req.method === 'POST') {
         const { teacherId, password } = req.body;
 
         try {
-            // Fetch the user from the Supabase 'users' table based on the teacherId
-            const { data: user, error: fetchError } = await supabase
+            const { data: user, error } = await supabase
                 .from('users')
                 .select('*')
-                .eq('student_id', teacherId)  // Note: 'student_id' is used for both students and teachers
+                .eq('student_id', teacherId)
+                .eq('role', 'teacher')
                 .single();
 
-            if (fetchError || !user || user.role !== 'teacher') {
-                return res.status(401).json({ error: 'Invalid credentials.' });
+            if (error || !user) {
+                return res.status(401).json({ error: 'Invalid credentials' });
             }
 
-            // Compare the provided password with the stored hashed password
-            const isPasswordValid = await bcrypt.compare(password, user.password);
-            if (!isPasswordValid) {
-                return res.status(401).json({ error: 'Invalid credentials.' });
-            }
+            // Add session logic here
+            req.session.user = user;
 
-            // Store user information in the session
-            req.session.user = {
-                id: user.id,
-                studentId: user.student_id,
-                role: user.role
-            };
-
-            // Respond with a success message
             res.status(200).json({ message: 'Login successful' });
         } catch (error) {
-            console.error('Unexpected error:', error);
+            console.error('Error logging in teacher:', error);
             res.status(500).json({ error: 'Internal server error. Please try again later.' });
         }
     } else {
