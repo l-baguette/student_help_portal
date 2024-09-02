@@ -16,7 +16,7 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            fetch('/submissions')
+            fetch('/api/submissions')
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
@@ -28,13 +28,13 @@
                     submissionsList.innerHTML = '';  // Clear any existing content
                     submissions.forEach(submission => {
                         const listItem = document.createElement('li');
-                        const fileName = submission.filePath.split('/').pop(); // Extract the file name
+                        const fileName = submission.file_path.split('/').pop(); // Extract the file name
                         const encodedFileName = encodeURIComponent(fileName); // Encode the file name
                         const fileLink = document.createElement('a');
                         fileLink.href = `/uploads/${encodedFileName}`;
                         fileLink.textContent = fileName;  // Display original file name
                         fileLink.target = '_blank';  // Open in new tab
-                        const formattedDate = new Date(submission.createdAt).toLocaleString();
+                        const formattedDate = new Date(submission.created_at).toLocaleString();
 
                         // Reorganized display structure
                         listItem.innerHTML = `
@@ -44,13 +44,13 @@
                         listItem.appendChild(fileLink);
                         listItem.innerHTML += `<br>
                             <strong>Problem:</strong> ${submission.problem}<br>
-                            <strong>Desired Outcome:</strong> ${submission.desiredOutcome}<br>
-                            <strong>Actual Outcome:</strong> ${submission.actualOutcome}<br>
+                            <strong>Desired Outcome:</strong> ${submission.desired_outcome}<br>
+                            <strong>Actual Outcome:</strong> ${submission.actual_outcome}<br>
                         `;
 
                         // Add feedback form
                         const feedbackForm = document.createElement('form');
-                        feedbackForm.action = `/feedback/${submission._id}`;
+                        feedbackForm.action = `/api/feedback/${submission._id}`;
                         feedbackForm.method = 'POST';
                         feedbackForm.enctype = 'multipart/form-data';
 
@@ -82,7 +82,10 @@
                         submissionsList.appendChild(listItem);
                     });
                 })
-                .catch(error => console.error('Error fetching submissions:', error));
+                .catch(error => {
+                    console.error('Error fetching submissions:', error);
+                    alert('There was an error fetching student submissions. Please try again later.');
+                });
         });
     </script>
 </body>

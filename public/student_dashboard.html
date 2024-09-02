@@ -7,7 +7,7 @@
 </head>
 <body>
     <h2>Welcome, Student!</h2>
-    <form action="/submit" method="POST" enctype="multipart/form-data">
+    <form action="/api/submit" method="POST" enctype="multipart/form-data">
         <label for="desiredOutcome">Desired Outcome:</label><br>
         <input type="text" id="desiredOutcome" name="desiredOutcome" required><br><br>
 
@@ -36,19 +36,19 @@
     <script>
         document.addEventListener("DOMContentLoaded", function() {
             // Fetch and display original submissions
-            fetch('/student_submissions')
+            fetch('/api/student_submissions')
                 .then(response => response.json())
                 .then(submissions => {
                     const submissionsList = document.getElementById('submissions');
                     submissions.forEach(submission => {
                         const listItem = document.createElement('li');
-                        const fileName = submission.filePath.split('/').pop(); // Extract the file name
+                        const fileName = submission.file_path.split('/').pop(); // Extract the file name
                         const encodedFileName = encodeURIComponent(fileName); // Encode the file name
                         const fileLink = document.createElement('a');
                         fileLink.href = `/uploads/${encodedFileName}`;
                         fileLink.textContent = fileName;  // Display original file name
                         fileLink.target = '_blank';  // Open in new tab
-                        const formattedDate = new Date(submission.createdAt).toLocaleString();
+                        const formattedDate = new Date(submission.created_at).toLocaleString();
 
                         // Reorganized display structure
                         listItem.innerHTML = `
@@ -57,36 +57,39 @@
                         listItem.appendChild(fileLink);
                         listItem.innerHTML += `<br>
                             <strong>Problem:</strong> ${submission.problem}<br>
-                            <strong>Desired Outcome:</strong> ${submission.desiredOutcome}<br>
-                            <strong>Actual Outcome:</strong> ${submission.actualOutcome}<br>
+                            <strong>Desired Outcome:</strong> ${submission.desired_outcome}<br>
+                            <strong>Actual Outcome:</strong> ${submission.actual_outcome}<br>
                             <p></p>
                         `;
 
                         submissionsList.appendChild(listItem);
                     });
                 })
-                .catch(error => console.error('Error fetching submissions:', error));
+                .catch(error => {
+                    console.error('Error fetching submissions:', error);
+                    alert('There was an error fetching your submissions. Please try again later.');
+                });
 
             // Fetch and display returned submissions
-            fetch('/returned_submissions')
+            fetch('/api/returned_submissions')
                 .then(response => response.json())
                 .then(feedbacks => {
                     const returnedList = document.getElementById('returnedSubmissions');
                     feedbacks.forEach(feedback => {
                         const listItem = document.createElement('li');
-                        const formattedDate = feedback.createdAt ? new Date(feedback.createdAt).toLocaleString() : 'No Date';
+                        const formattedDate = feedback.created_at ? new Date(feedback.created_at).toLocaleString() : 'No Date';
 
                         listItem.innerHTML = `
                             <strong>Returned At:</strong> ${formattedDate}<br>
                             <strong>Feedback:</strong> ${feedback.feedback || 'No Feedback'}<br>
                         `;
 
-                        if (feedback.revisedFilePath) {
-                            const fileName = feedback.revisedFilePath.split('/').pop(); // Extract the file name
+                        if (feedback.revised_file_path) {
+                            const fileName = feedback.revised_file_path.split('/').pop(); // Extract the file name
                             const encodedFileName = encodeURIComponent(fileName); // Encode the file name
                             const fileLink = document.createElement('a');
                             fileLink.href = `/feedback/${encodedFileName}`;
-                            fileLink.textContent = feedback.revisedFileName || 'Download Revised File';
+                            fileLink.textContent = feedback.revised_file_name || 'Download Revised File';
                             fileLink.target = '_blank';  // Open in new tab
                             listItem.innerHTML += `<strong>Revised File:</strong> `;
                             listItem.appendChild(fileLink);
@@ -97,7 +100,10 @@
                         returnedList.appendChild(listItem);
                     });
                 })
-                .catch(error => console.error('Error fetching returned submissions:', error));
+                .catch(error => {
+                    console.error('Error fetching returned submissions:', error);
+                    alert('There was an error fetching your returned submissions. Please try again later.');
+                });
         });
     </script>
 </body>

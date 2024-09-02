@@ -4,7 +4,7 @@ const app = express();
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
-app.get('/student_submissions', async (req, res) => {
+app.get('/api/student_submissions', async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'student') {
         return res.status(401).json({ error: 'Unauthorized' });
     }
@@ -18,9 +18,9 @@ app.get('/student_submissions', async (req, res) => {
         if (error) throw error;
 
         res.json(submissions);
-    } catch (error) {
-        console.error('Error retrieving submissions:', error);
-        res.status(500).json({ error: 'Error retrieving submissions' });
+    } catch (err) {
+        console.error('Error retrieving student submissions:', err.message);
+        res.status(500).json({ error: 'Internal server error. Please try again later.' });
     }
 });
 

@@ -6,14 +6,12 @@
     <title>Teacher Registration</title>
 </head>
 <body>
-    <h2>Register as a Teacher</h2>
-    <form action="/register_teacher" method="POST">
+    <h1>Register as a Teacher</h1>
+    <form action="/api/register_teacher" method="POST">
         <label for="teacherId">Teacher ID:</label><br>
         <input type="text" id="teacherId" name="teacherId" required><br><br>
-
         <label for="password">Password:</label><br>
         <input type="password" id="password" name="password" required><br><br>
-
         <button type="submit">Register</button>
     </form>
 </body>

@@ -1,12 +1,12 @@
 const mongoose = require('mongoose');
 
 const FeedbackSchema = new mongoose.Schema({
-    submissionId: {
+    submission_id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Submission',
         required: true
     },
-    teacherId: {
+    teacher_id: {
         type: String,
         required: true
     },
@@ -14,16 +14,21 @@ const FeedbackSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    revisedFilePath: {
+    revised_file_path: {
         type: String
     },
-    revisedFileName: {
+    revised_file_name: {
         type: String
     },
-    createdAt: {
+    created_at: {
         type: Date,
         default: Date.now
     }
 });
+
+FeedbackSchema.statics.handleError = function (error) {
+    console.error(error);
+    return { error: 'An error occurred while processing your request.' };
+};
 
 module.exports = mongoose.model('Feedback', FeedbackSchema);

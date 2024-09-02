@@ -6,14 +6,12 @@
     <title>Teacher Login</title>
 </head>
 <body>
-    <h2>Login as a Teacher</h2>
-    <form action="/teacher_login" method="POST">
+    <h1>Teacher Login</h1>
+    <form action="/api/teacher_login" method="POST">
         <label for="teacherId">Teacher ID:</label><br>
         <input type="text" id="teacherId" name="teacherId" required><br><br>
-
         <label for="password">Password:</label><br>
         <input type="password" id="password" name="password" required><br><br>
-
         <button type="submit">Login</button>
     </form>
 </body>

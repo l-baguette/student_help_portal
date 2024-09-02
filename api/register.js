@@ -7,21 +7,28 @@ const app = express();
 
 app.use(express.json());
 
-app.post('/register', async (req, res) => {
+app.post('/api/register', async (req, res) => {
     try {
         const { studentId, password } = req.body;
         const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = {
+            student_id: studentId,
+            password: hashedPassword,
+            role: 'student'
+        };
 
-        const { data, error } = await supabase
+        const { error } = await supabase
             .from('users')
-            .insert([{ student_id: studentId, password: hashedPassword, role: 'student' }]);
+            .insert([newUser]);
 
-        if (error) throw error;
+        if (error) {
+            throw new Error('Error registering student');
+        }
 
         res.status(200).json({ message: 'Registration successful' });
-    } catch (error) {
-        console.error('Error registering user:', error);
-        res.status(500).json({ error: 'Error registering user' });
+    } catch (err) {
+        console.error('Error registering user:', err.message);
+        res.status(500).json({ error: 'Internal server error. Please try again later.' });
     }
 });
 

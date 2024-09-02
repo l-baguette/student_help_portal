@@ -7,7 +7,7 @@ const app = express();
 
 app.use(express.json());
 
-app.post('/teacher_login', async (req, res) => {
+app.post('/api/teacher_login', async (req, res) => {
     try {
         const { teacherId, password } = req.body;
         const { data: user, error } = await supabase
@@ -28,9 +28,9 @@ app.post('/teacher_login', async (req, res) => {
 
         req.session.user = user;
         res.redirect('/teacher_dashboard.html');
-    } catch (error) {
-        console.error('Error logging in teacher:', error);
-        res.status(500).json({ error: 'Error logging in teacher' });
+    } catch (err) {
+        console.error('Error logging in teacher:', err.message);
+        res.status(500).json({ error: 'Internal server error. Please try again later.' });
     }
 });
 
