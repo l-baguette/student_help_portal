@@ -1,13 +1,19 @@
-const supabase = require('../supabaseClient');
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 module.exports = async (req, res) => {
-    try {
-        const { studentId } = req.session.user;
+    if (!req.session.user || req.session.user.role !== 'student') {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
 
+    try {
         const { data: submissions, error } = await supabase
             .from('submissions')
             .select('*')
-            .eq('student_id', studentId);
+            .eq('student_id', req.session.user.id);
 
         if (error) {
             console.error('Error retrieving submissions:', error);
