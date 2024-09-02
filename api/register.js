@@ -1,53 +1,50 @@
-import { createClient } from '@supabase/supabase-js';
-const bcrypt = require('bcryptjs');
+import { supabase } from './supabaseClient';
+import bcrypt from 'bcryptjs';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+export default async function handler(req, res) {
+    if (req.method === 'POST') {
+        const { studentId, password, role } = req.body;
 
-module.exports = async (req, res) => {
-    try {
-        const { studentId, password } = req.body;
+        try {
+            // Check if user already exists
+            const { data: existingUser, error: fetchError } = await supabase
+                .from('users')
+                .select('*')
+                .eq('student_id', studentId)
+                .single();
 
-        if (!studentId || !password) {
-            return res.status(400).json({ error: 'Student ID and password are required.' });
+            if (fetchError && fetchError.code !== 'PGRST116') {
+                console.error('Error checking existing user:', fetchError);
+                return res.status(500).json({ error: 'Internal server error. Please try again later.' });
+            }
+
+            if (existingUser) {
+                return res.status(409).json({ error: 'User already exists.' });
+            }
+
+            const hashedPassword = await bcrypt.hash(password, 10);
+
+            const { error: insertError } = await supabase
+                .from('users')
+                .insert([
+                    {
+                        student_id: studentId,
+                        password: hashedPassword,
+                        role: role || 'student'
+                    }
+                ]);
+
+            if (insertError) {
+                console.error('Error registering user:', insertError);
+                return res.status(500).json({ error: 'Internal server error. Please try again later.' });
+            }
+
+            res.status(200).json({ message: 'Registration successful' });
+        } catch (error) {
+            console.error('Unexpected error:', error);
+            res.status(500).json({ error: 'Internal server error. Please try again later.' });
         }
-
-        const { data: existingUser, error: fetchError } = await supabase
-            .from('users')
-            .select('*')
-            .eq('student_id', studentId)
-            .single();
-
-        if (fetchError && fetchError.code !== 'PGRST116') {
-            console.error('Error checking existing user:', fetchError);
-            return res.status(500).json({ error: 'Internal server error. Please try again later.' });
-        }
-
-        if (existingUser) {
-            return res.status(409).json({ error: 'User already exists.' });
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        const { error: insertError } = await supabase
-            .from('users')
-            .insert([
-                {
-                    student_id: studentId,
-                    password: hashedPassword,
-                    role: 'student'
-                }
-            ]);
-
-        if (insertError) {
-            console.error('Error registering user:', insertError);
-            return res.status(500).json({ error: 'Internal server error. Please try again later.' });
-        }
-
-        res.status(200).json({ message: 'Registration successful' });
-    } catch (error) {
-        console.error('Unexpected error:', error);
-        res.status(500).json({ error: 'Internal server error. Please try again later.' });
+    } else {
+        res.status(405).json({ error: 'Method not allowed' });
     }
-};
+}
