@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard</title>
+</head>
+<body>
+    <h2>Welcome, Teacher!</h2>
+    <h3>All Student Submissions</h3>
+    
+    <!-- List to display submissions -->
+    <ul id="submissions">
+        <!-- Submissions will be dynamically loaded here -->
+    </ul>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            fetch('/submissions')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(submissions => {
+                    const submissionsList = document.getElementById('submissions');
+                    submissionsList.innerHTML = '';  // Clear any existing content
+                    submissions.forEach(submission => {
+                        const listItem = document.createElement('li');
+                        const fileName = submission.filePath.split('/').pop(); // Extract the file name
+                        const encodedFileName = encodeURIComponent(fileName); // Encode the file name
+                        const fileLink = document.createElement('a');
+                        fileLink.href = `/uploads/${encodedFileName}`;
+                        fileLink.textContent = fileName;  // Display original file name
+                        fileLink.target = '_blank';  // Open in new tab
+                        const formattedDate = new Date(submission.createdAt).toLocaleString();
+
+                        // Reorganized display structure
+                        listItem.innerHTML = `
+                            <p></p>
+                            <strong>Submitted At:</strong> ${formattedDate}<br>
+                            <strong>File:</strong> `;
+                        listItem.appendChild(fileLink);
+                        listItem.innerHTML += `<br>
+                            <strong>Problem:</strong> ${submission.problem}<br>
+                            <strong>Desired Outcome:</strong> ${submission.desiredOutcome}<br>
+                            <strong>Actual Outcome:</strong> ${submission.actualOutcome}<br>
+                        `;
+
+                        // Add feedback form
+                        const feedbackForm = document.createElement('form');
+                        feedbackForm.action = `/feedback/${submission._id}`;
+                        feedbackForm.method = 'POST';
+                        feedbackForm.enctype = 'multipart/form-data';
+
+                        const feedbackLabel = document.createElement('label');
+                        feedbackLabel.textContent = 'Feedback:';
+                        feedbackForm.appendChild(feedbackLabel);
+
+                        const feedbackInput = document.createElement('textarea');
+                        feedbackInput.name = 'feedback';
+                        feedbackForm.appendChild(feedbackInput);
+
+                        const fileInputLabel = document.createElement('label');
+                        fileInputLabel.textContent = 'Upload Revised File:';
+                        feedbackForm.appendChild(fileInputLabel);
+
+                        const fileInput = document.createElement('input');
+                        fileInput.type = 'file';
+                        fileInput.name = 'revisedFile';
+                        feedbackForm.appendChild(fileInput);
+
+                        const submitButton = document.createElement('button');
+                        submitButton.type = 'submit';
+                        submitButton.textContent = 'Submit Feedback';
+                        feedbackForm.appendChild(submitButton);
+
+                        listItem.appendChild(document.createElement('br'));
+                        listItem.appendChild(feedbackForm);
+
+                        submissionsList.appendChild(listItem);
+                    });
+                })
+                .catch(error => console.error('Error fetching submissions:', error));
+        });
+    </script>
+</body>
+</html>
