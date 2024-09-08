@@ -22,7 +22,12 @@ export async function handler(req, res) {
                 return res.status(401).json({ error: 'Invalid credentials' });
             }
 
-            // Add session logic here
+            // Check if the session exists before assigning user to it
+            if (!req.session) {
+                return res.status(500).json({ error: 'Session not initialized' });
+            }
+
+            // Store the user in the session
             req.session.user = user;
 
             // Redirect the user to the teacher dashboard

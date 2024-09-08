@@ -1,3 +1,4 @@
+// api/submit.js
 import { supabase } from './supabaseClient';
 import multer from 'multer';
 import path from 'path';
@@ -14,6 +15,7 @@ export default function handler(req, res) {
             const { desiredOutcome, actualOutcome, problem } = req.body;
 
             try {
+                // Insert submission into the database
                 const { error: insertError } = await supabase
                     .from('submissions')
                     .insert([
